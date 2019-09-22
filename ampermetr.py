@@ -1,5 +1,6 @@
 import time
 import curses
+import threading
 
 myscreen = curses.initscr() 
 ### прячем курсор
@@ -20,7 +21,7 @@ myscreen.addstr(0,1,'| ampermetr |')
 height, width = myscreen.getmaxyx()
 
 empty = ' '
-line = '____________________________________'
+line = '_' * 36
 discharg =   'Статус: Разряжается'#[:width-1]
 charg =      'Статус: Заряжается '#[:width-1]
 charg_full = 'Статус: Заряжен    '
@@ -50,7 +51,25 @@ start_x_exit           = int(half_width - (len(exit) // 2) - len(exit) % 2)
 start_y = int((height // 2) - 10)
 
 
+
 path = '/sys/class/power_supply/BAT1/'
+
+### Читаем неизменяимые данные вне цикла, меньше обращений к диску, в цикле только выводим значения ###
+### Тип батареи
+with open(path+'technology') as f:
+    technology = f.read()
+
+### Заводская емкость батареи
+with open(path+'charge_full_design') as f:
+    charge_full_design = f.read()
+
+### производитель и модель батареи
+with open(path+'manufacturer') as f:
+    manufacturer = f.read()
+
+with open(path+'model_name') as f:
+    model_name = f.read()
+
 while True:
     ### Статус батареи, заряжается\разряжается
     with open(path+'status') as f:
@@ -89,13 +108,9 @@ while True:
     myscreen.addstr(start_y + 1, start_x_percent_charge - 5, percent_charge+str(round(int(charge_now) * 100 / int(charge_full),1))+' % ')
 
     ### Тип батареи
-    with open(path+'technology') as f:
-        technology = f.read()
     myscreen.addstr(start_y + 2, start_x_technology - 8, type_bat+technology[:-1])
 
     ### Заводская емкость батареи
-    with open(path+'charge_full_design') as f:
-        charge_full_design = f.read()
     myscreen.addstr(start_y + 3, start_x_full_design - 10, full_bat+str(int(charge_full_design) // 1000)+' mAh ')
 
     ### Текущее напряжение
@@ -104,11 +119,6 @@ while True:
     myscreen.addstr(start_y + 4, start_x_voltage - 8, volt_bat+str(round(int(voltage_now) / 1000000, 1))+' V ')
 
     ### производитель и модель батареи
-    with open(path+'manufacturer') as f:
-        manufacturer = f.read()
-
-    with open(path+'model_name') as f:
-        model_name = f.read()
     myscreen.addstr(start_y + 5, start_x_manufacturer - 9, manufacturer_name+manufacturer[:-1])
     myscreen.addstr(start_y + 6, start_x_model - 6, model+model_name[:-1])
 
@@ -117,10 +127,10 @@ while True:
     myscreen.addstr(start_y + 11, start_x_exit - 4, exit)
     myscreen.nodelay(True) ###  убирает задержку getch чтобы он не ожидал введения символа.
     if myscreen.getch() == 113: ### 113 это ord('q')
-        break 
+        break
 
     myscreen.refresh()
-    time.sleep(1)
+    time.sleep(0.1)
 
 myscreen.clear()
 myscreen.refresh()
