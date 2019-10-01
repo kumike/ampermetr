@@ -1,8 +1,12 @@
-import time
 import curses
-import threading
+import time
+import multiprocessing
+import signal
 
 myscreen = curses.initscr() 
+
+### для голой консоли, не выводит в конце строки нажимаемые символы
+curses.noecho() 
 ### прячем курсор
 curses.curs_set(0)
 
@@ -19,6 +23,8 @@ myscreen.border(0)
 myscreen.addstr(0,1,'| ampermetr |')
 
 height, width = myscreen.getmaxyx()
+
+myscreen.refresh()### костыль и вроде работает
 
 empty = ' '
 line = '_' * 36
@@ -52,86 +58,95 @@ start_y = int((height // 2) - 10)
 
 
 
-path = '/sys/class/power_supply/BAT1/'
+def mainCycle():
+    path = '/sys/class/power_supply/BAT1/'
 
-### Читаем неизменяимые данные вне цикла, меньше обращений к диску, в цикле только выводим значения ###
-### Тип батареи
-with open(path+'technology') as f:
-    technology = f.read()
-
-### Заводская емкость батареи
-with open(path+'charge_full_design') as f:
-    charge_full_design = f.read()
-
-### производитель и модель батареи
-with open(path+'manufacturer') as f:
-    manufacturer = f.read()
-
-with open(path+'model_name') as f:
-    model_name = f.read()
-
-while True:
-    ### Статус батареи, заряжается\разряжается
-    with open(path+'status') as f:
-        status = f.read()
-
-    if 'Discharging' in status:
-        prefix = '-'
-        color_num = 3
-        myscreen.addstr(start_y, start_x_discharg, discharg)#,curses.color_pair(1))
-    elif 'Charging' in status:
-        prefix = ' '
-        color_num = 2
-        myscreen.addstr(start_y, start_x_charg, charg)
-    elif 'Full' in status:
-        prefix = ' '
-        color_num = 2
-        myscreen.addstr(start_y, start_x_charg, charg_full)
-
-    ### текущий заряд/розряд в микроАмперах : /1000 = миниАмперы /1000000 = амперы
-    with open(path+'current_now') as f:
-        current_now = f.read()
-    myscreen.attron(curses.color_pair(color_num))    
-    myscreen.attron(curses.A_BOLD)    
-    myscreen.addstr(start_y - 3, start_x_current_now - 6, prefix+str(round(int(current_now) / 1000))+' mA ')#, curses.color_pair(2))
-    myscreen.attroff(curses.A_BOLD)
-    myscreen.attroff(curses.color_pair(color_num))
-    myscreen.addstr(start_y - 2, start_x_line - 2, line)
-    myscreen.addstr(start_y - 1, start_x_empty + 1,'')
-
-    ### текущий процкнт заряда батареи
-    with open(path+'charge_now') as f:
-        charge_now = f.read()
-
-    with open(path+'charge_full') as f:
-        charge_full = f.read()
-    myscreen.addstr(start_y + 1, start_x_percent_charge - 5, percent_charge+str(round(int(charge_now) * 100 / int(charge_full),1))+' % ')
-
+    ### Читаем неизменяимые данные вне цикла, меньше обращений к диску, в цикле только выводим значения ###
     ### Тип батареи
-    myscreen.addstr(start_y + 2, start_x_technology - 8, type_bat+technology[:-1])
+    with open(path+'technology') as f:
+        technology = f.read()
 
     ### Заводская емкость батареи
-    myscreen.addstr(start_y + 3, start_x_full_design - 10, full_bat+str(int(charge_full_design) // 1000)+' mAh ')
-
-    ### Текущее напряжение
-    with open(path+'voltage_now') as f:
-        voltage_now = f.read()
-    myscreen.addstr(start_y + 4, start_x_voltage - 8, volt_bat+str(round(int(voltage_now) / 1000000, 1))+' V ')
+    with open(path+'charge_full_design') as f:
+        charge_full_design = f.read()
 
     ### производитель и модель батареи
-    myscreen.addstr(start_y + 5, start_x_manufacturer - 9, manufacturer_name+manufacturer[:-1])
-    myscreen.addstr(start_y + 6, start_x_model - 6, model+model_name[:-1])
+    with open(path+'manufacturer') as f:
+        manufacturer = f.read()
 
-    ### выход
-    curses.noecho() ### для голой консоли, не выводит в конце строки нажимаемые символы
-    myscreen.addstr(start_y + 11, start_x_exit - 4, exit)
-    myscreen.nodelay(True) ###  убирает задержку getch чтобы он не ожидал введения символа.
-    if myscreen.getch() == 113: ### 113 это ord('q')
-        break
+    with open(path+'model_name') as f:
+        model_name = f.read()
 
-    myscreen.refresh()
-    time.sleep(0.1)
+    while True:
+        ### Статус батареи, заряжается\разряжается
+        with open(path+'status') as f:
+            status = f.read()
 
-myscreen.clear()
-myscreen.refresh()
-curses.endwin()
+        if 'Discharging' in status:
+            prefix = '-'
+            color_num = 3
+            myscreen.addstr(start_y, start_x_discharg, discharg)#,curses.color_pair(1))
+        elif 'Charging' in status:
+            prefix = ' '
+            color_num = 2
+            myscreen.addstr(start_y, start_x_charg, charg)
+        elif 'Full' in status:
+            prefix = ' '
+            color_num = 2
+            myscreen.addstr(start_y, start_x_charg, charg_full)
+
+        ### текущий заряд/розряд в микроАмперах : /1000 = миниАмперы /1000000 = амперы
+        with open(path+'current_now') as f:
+            current_now = f.read()
+        myscreen.attron(curses.color_pair(color_num))    
+        myscreen.attron(curses.A_BOLD)    
+        myscreen.addstr(start_y - 3, start_x_current_now - 6, prefix+str(round(int(current_now) / 1000))+' mA ')#, curses.color_pair(2))
+        myscreen.attroff(curses.A_BOLD)
+        myscreen.attroff(curses.color_pair(color_num))
+        myscreen.addstr(start_y - 2, start_x_line - 2, line)
+        myscreen.addstr(start_y - 1, start_x_empty + 1,'')
+
+        ### текущий процкнт заряда батареи
+        with open(path+'charge_now') as f:
+            charge_now = f.read()
+
+        with open(path+'charge_full') as f:
+            charge_full = f.read()
+        myscreen.addstr(start_y + 1, start_x_percent_charge - 5, percent_charge+str(round(int(charge_now) * 100 / int(charge_full),1))+' % ')
+
+        ### Тип батареи
+        myscreen.addstr(start_y + 2, start_x_technology - 8, type_bat+technology[:-1])
+
+        ### Заводская емкость батареи
+        myscreen.addstr(start_y + 3, start_x_full_design - 10, full_bat+str(int(charge_full_design) // 1000)+' mAh ')
+
+        ### Текущее напряжение
+        with open(path+'voltage_now') as f:
+            voltage_now = f.read()
+        myscreen.addstr(start_y + 4, start_x_voltage - 8, volt_bat+str(round(int(voltage_now) / 1000000, 1))+' V ')
+
+        ### производитель и модель батареи
+        myscreen.addstr(start_y + 5, start_x_manufacturer - 9, manufacturer_name+manufacturer[:-1])
+        myscreen.addstr(start_y + 6, start_x_model - 6, model+model_name[:-1])
+
+        ### выход
+        myscreen.addstr(start_y + 11, start_x_exit - 4, exit)
+        
+        myscreen.refresh()
+        time.sleep(1)
+
+            
+def exitFunc():
+    try:
+        if myscreen.getch() == 113: ### 113 это ord('q')
+            main_cycle_proc.terminate() ### мгновенно убиваем главный цикл
+    except KeyboardInterrupt:
+        main_cycle_proc.terminate()
+        myscreen.clear()
+        curses.endwin()
+
+### Процесoм сделано для того чтобы не было задержки выхода по q организованому в главном цикле, запускается отдельным процесом и прибивается функцией exitFunc()
+main_cycle_proc = multiprocessing.Process(target=mainCycle)
+main_cycle_proc.start()
+
+exitFunc()
