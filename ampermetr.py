@@ -66,6 +66,8 @@ def mainCycle():
     with open(path+'technology') as f:
         technology = f.read()
 
+    myscreen.addstr(start_y + 2, start_x_technology - 8, type_bat+technology[:-1])
+
     ### Заводская емкость батареи
     with open(path+'charge_full_design') as f:
         charge_full_design = f.read()
@@ -115,7 +117,7 @@ def mainCycle():
         myscreen.addstr(start_y + 1, start_x_percent_charge - 5, percent_charge+str(round(int(charge_now) * 100 / int(charge_full),1))+' % ')
 
         ### Тип батареи
-        myscreen.addstr(start_y + 2, start_x_technology - 8, type_bat+technology[:-1])
+#        myscreen.addstr(start_y + 2, start_x_technology - 8, type_bat+technology[:-1])
 
         ### Заводская емкость батареи
         myscreen.addstr(start_y + 3, start_x_full_design - 10, full_bat+str(int(charge_full_design) // 1000)+' mAh ')
@@ -130,7 +132,7 @@ def mainCycle():
         myscreen.addstr(start_y + 6, start_x_model - 6, model+model_name[:-1])
 
         ### выход
-        myscreen.addstr(start_y + 11, start_x_exit - 4, exit)
+#        myscreen.addstr(start_y + 11, start_x_exit - 4, exit)
         
         myscreen.refresh()
         time.sleep(1)
@@ -138,12 +140,14 @@ def mainCycle():
             
 def exitFunc():
     try:
+        myscreen.addstr(start_y + 11, start_x_exit - 4, exit)
         if myscreen.getch() == 113: ### 113 это ord('q')
             main_cycle_proc.terminate() ### мгновенно убиваем главный цикл
     except KeyboardInterrupt:
         main_cycle_proc.terminate()
         myscreen.clear()
         curses.endwin()
+
 
 ### Процесoм сделано для того чтобы не было задержки выхода по q организованому в главном цикле, запускается отдельным процесом и прибивается функцией exitFunc()
 main_cycle_proc = multiprocessing.Process(target=mainCycle)
