@@ -199,12 +199,12 @@ main_cycle_proc.start()
 exit_func_proc.start()
 
 ### следим за маинЦиклом, если разм. окна меньше он заканчиватся и знач прибиваем и екситФункц.
-#try:
-while True:
-    if main_cycle_proc.is_alive() == False:
-        exit_func_proc.terminate()
-        break
-    time.sleep(0.5)
-#except KeyboardInterrupt:
-#    myscreen.clear()
-#    curses.endwin()
+try:
+    while True:
+        if main_cycle_proc.is_alive() == False:
+            exit_func_proc.terminate()
+            break
+        time.sleep(0.5)
+except KeyboardInterrupt:
+    myscreen.clear()
+    curses.endwin()
