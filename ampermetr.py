@@ -47,7 +47,7 @@ def mainCycle():
         technology = f.read()
     
     ### Заводская емкость батареи
-    with open(path+'charge_full_design') as f:
+    with open(path+'energy_full_design') as f:
         charge_full_design = f.read()
     
     ### производитель и модель батареи
@@ -89,6 +89,11 @@ def mainCycle():
         myscreen.border(0) 
         myscreen.addstr(0,1,'| ampermetr |')
 
+        curses.init_pair(2,curses.COLOR_GREEN,-1)
+        curses.init_pair(3,curses.COLOR_RED,-1)
+        
+        
+        
         ### Статус батареи, заряжается\разряжается
         with open(path+'status') as f:
             status = f.read()
@@ -113,7 +118,7 @@ def mainCycle():
 
 
         ### текущий заряд/розряд в микроАмперах : /1000 = миниАмперы /1000000 = амперы
-        with open(path+'current_now') as f:
+        with open(path+'power_now') as f:
             current_now = f.read()
 
         myscreen.attron(curses.color_pair(color_num))    
@@ -129,11 +134,11 @@ def mainCycle():
         ### разд. линия
         myscreen.addstr(start_y - 2, start_x_line, line)
 
-        ### текущий процкнт заряда батареи
-        with open(path+'charge_now') as f:
+        ### текущий процент заряда батареи
+        with open(path+'energy_now') as f:
             charge_now = f.read()
         
-        with open(path+'charge_full') as f:
+        with open(path+'energy_full') as f:
             charge_full = f.read()
         
         myscreen.addstr(start_y + 1, start_x_percent_charge, percent_charge)
