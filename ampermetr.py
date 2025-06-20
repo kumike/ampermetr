@@ -2,7 +2,7 @@ import curses
 import time
 import multiprocessing
 
-myscreen = curses.initscr() 
+myscreen = curses.initscr()
 
 ### для голой консоли, не выводит в конце строки нажимаемые символы
 curses.noecho()
