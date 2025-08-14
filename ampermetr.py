@@ -1,6 +1,32 @@
+# -*- coding: utf-8 -*-
+
 import curses
 import time
 import multiprocessing
+import os
+import gettext
+
+# Папка с переводами
+LOCALE_DIR = os.path.join(os.path.dirname(__file__), 'locale')
+
+# Определяем язык из переменной окружения LANG
+lang_env = os.environ.get('LANG', 'en')  # например: en_US.UTF-8
+lang_code_full = lang_env.split('.')[0]  # en_US
+lang_code_short = lang_code_full.split('_')[0]  # en
+
+# Пробуем сначала полный код (en_US), потом короткий (en)
+try:
+    lang = gettext.translation(
+        'messages',
+        localedir=LOCALE_DIR,
+        languages=[lang_code_full, lang_code_short],
+        fallback=True
+    )
+except FileNotFoundError:
+    lang = gettext.NullTranslations()
+
+lang.install()
+_ = lang.gettext
 
 myscreen = curses.initscr()
 
@@ -23,18 +49,18 @@ curses.init_pair(3,curses.COLOR_RED,-1)
 
 
 line              = '_' * 36
-stat_us           = 'Статус: '
-discharg          = 'Разряжается'
-charg             = 'Заряжается '
-charg_full        = 'Заряжен    '
-percent_charge    = 'Заряд: '
-capacity          = 'Состояние: '
-manufacturer_name = 'Производитель: '
-model             = 'Модель: '
-type_bat          = 'Тип батареи: '
-full_bat          = 'Емкость батареи: '
-volt_bat          = 'Напряжение: '
-exit              = 'Нажмите q для выхода'
+stat_us           = _('Статус: ')
+discharg          = _('Разряжается')
+charg             = _('Заряжается ')
+charg_full        = _('Заряжен    ')
+percent_charge    = _('Заряд: ')
+capacity          = _('Состояние: ')
+manufacturer_name = _('Производитель: ')
+model             = _('Модель: ')
+type_bat          = _('Тип батареи: ')
+full_bat          = _('Емкость батареи: ')
+volt_bat          = _('Напряжение: ')
+exit              = _('Нажмите q для выхода')
 
 
 
