@@ -1,0 +1,56 @@
+# simple python script for ba:wsh? monitorin batary in your lap-top under linux.
+# Copyright (C) YEAR THE ampermetr'S COPYRIGHT HOLDE 2020
+# This file is distributed under the same license as the ampermetr package.
+# FIRST AUTHOR <michailkubrak@gmail.com>, YEAR.
+#
+#, mike
+msgid ""
+msgstr ""
+"Project-Id-Version: 0.5\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-08-14 17:35+0300\n"
+"PO-Revision-Date: 2025-08-14\n"
+"Last-Translator: FULL NAME <michailkubrak@gmail.com>\n"
+"Language-Team: LANGUAGE <michailkubrak@gmail.com>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgid "Статус: "
+msgstr "Статус: "
+
+msgid "Разряжается"
+msgstr "Разряжается"
+
+msgid "Заряжается "
+msgstr "Заряжается "
+
+msgid "Заряжен    "
+msgstr "Заряжен    "
+
+msgid "Заряд: "
+msgstr "Заряд: "
+
+msgid "Состояние: "
+msgstr "Состояние: "
+
+msgid "Производитель: "
+msgstr "Производитель: "
+
+msgid "Модель: "
+msgstr "Модель: "
+
+msgid "Тип батареи: "
+msgstr "Тип батареи: "
+
+msgid "Емкость батареи: "
+msgstr "Емкость батареи: "
+
+msgid "Напряжение: "
+msgstr "Напряжение: "
+
+msgid "Нажмите q для выхода"
+msgstr "Нажмите q для выхода"
+
+
