@@ -18,7 +18,7 @@ def get_battery_degradation(full, design):
         return None
 
 def read_energy_or_charge(path, name_energy, name_charge):
-    """Читает energy_* файл, если есть, иначе charge_* для совместимости"""
+    """Reads energy_* file if present, otherwise charge_* for compatibility"""
     energy_path = os.path.join(path, name_energy)
     charge_path = os.path.join(path, name_charge)
     
@@ -33,14 +33,14 @@ def read_energy_or_charge(path, name_energy, name_charge):
 
 def read_power_or_current(path):
     """
-    Читает power_now (мкВт) если есть, иначе current_now (мкА) и конвертирует в мкВт.
-    Для совместимости со старыми ядрами, где нет power_now.
+    Reads power_now (uW) if present, otherwise current_now (uA) and converts to uW.
+    For compatibility with older kernels that lack power_now.
     """
     power_path = os.path.join(path, 'power_now')
     current_path = os.path.join(path, 'current_now')
     voltage_path = os.path.join(path, 'voltage_now')
     
-    # Пробуем power_now (предпочтительный вариант, мкВт)
+    # Try power_now (preferred option, uW)
     if os.path.exists(power_path):
         try:
             with open(power_path) as f:
@@ -48,14 +48,14 @@ def read_power_or_current(path):
         except:
             pass
     
-    # Fallback: current_now (мкА) * voltage_now (мкВ) = мкВт
+    # Fallback: current_now (uA) * voltage_now (uV) = uW
     if os.path.exists(current_path) and os.path.exists(voltage_path):
         try:
             with open(current_path) as f:
                 current = int(f.read().strip())
             with open(voltage_path) as f:
                 voltage = int(f.read().strip())
-            # P(мкВт) = I(мкА) * V(мкВ) / 1_000_000
+            # P(uW) = I(uA) * V(uV) / 1_000_000
             return int((current * voltage) / 1_000_000)
         except:
             pass
@@ -63,7 +63,7 @@ def read_power_or_current(path):
     return 0
 
 def find_battery():
-    """Динамический поиск первой доступной батареи в sysfs"""
+    """Dynamic search for the first available battery in sysfs"""
     patterns = ['/sys/class/power_supply/BAT*', '/sys/class/power_supply/CMB*', '/sys/class/power_supply/BATT*']
     for pattern in patterns:
         for bat_path in sorted(glob.glob(pattern)):
@@ -79,16 +79,16 @@ def find_battery():
 
 myscreen = curses.initscr() 
 
-### для голой консоли, не выводит в конце строки нажимаемые символы
+### for bare console, does not echo pressed characters at the end of the line
 curses.noecho() 
-### прячем курсор
+### hide cursor
 curses.curs_set(0)
 
-### используем дефолтные цвета кoнсоли (прозрачность и тп)
+### use default console colors (transparency, etc.)
 curses.start_color()
 curses.use_default_colors()
 curses.init_pair(1,-1,-1)
-### задаем цвет для строки с мАч
+### set color for the mAh line
 curses.init_pair(2,curses.COLOR_GREEN,-1)
 curses.init_pair(3,curses.COLOR_RED,-1)
 
@@ -98,23 +98,23 @@ myscreen.addstr(0,1,'| ampermetr |')
 
 height, width = myscreen.getmaxyx()
 
-myscreen.refresh()### костыль и вроде работает
+myscreen.refresh()### hack and seems to work
 
 empty = ' '
 line = '_' * 56
-discharg =   'Статус: Разряжается'#[:width-1]
-charg =      'Статус: Заряжается '#[:width-1]
-charg_full = 'Статус: Заряжен    '
-percent_charge = 'Заряд: '
-capacity_lev = 'Состояние: '
-manufacturer_name = 'Производитель: '
-model = 'Модель: '
-type_bat = 'Тип батареи: '
-full_bat = 'Заводская емкость батареи: '
-now_bat = 'Текущая емкость батареи: '
-volt_bat = 'Напряжение: '
-degrade = 'Деградация: '
-exit = 'Нажмите q для выхода'
+discharg =   'Status: Discharging'
+charg =      'Status: Charging   '
+charg_full = 'Status: Full       '
+percent_charge = 'Charge: '
+capacity_lev = 'Condition: '
+manufacturer_name = 'Manufacturer: '
+model = 'Model: '
+type_bat = 'Battery type: '
+full_bat = 'Factory battery capacity: '
+now_bat = 'Current battery capacity: '
+volt_bat = 'Voltage: '
+degrade = 'Degradation: '
+exit = 'Press q to exit'
 
 
 half_width = width // 2
@@ -142,26 +142,26 @@ def mainCycle():
     path = find_battery()
     if not path:
         curses.endwin()
-        print("Ошибка: Батарея не найдена в системе (нет BAT*/CMB* с present=1).", file=sys.stderr)
+        print("Error: Battery not found in system (no BAT*/CMB* with present=1).", file=sys.stderr)
         os._exit(1)
 
-    ### Определяем тип метрик ядра: energy (mWh) или charge (mAh)
+    ### Determine kernel metric type: energy (mWh) or charge (mAh)
     if os.path.exists(path + 'energy_full_design'):
         capacity_unit = 'mWh'
     else:
         capacity_unit = 'mAh'
 
-    ### Читаем неизменяимые данные вне цикла, меньше обращений к диску, в цикле только выводим значения ###
-    ### Тип батареи
+    ### Read immutable data outside the loop, fewer disk accesses, only output values in the loop ###
+    ### Battery type
     with open(path+'technology') as f:
         technology = f.read().strip()
 
     myscreen.addstr(start_y + 2, start_x_technology - 8, type_bat+technology)
 
-    ### Заводская емкость батареи (с поддержкой energy/charge для совместимости)
+    ### Factory battery capacity (with energy/charge support for compatibility)
     charge_full_design = read_energy_or_charge(path, 'energy_full_design', 'charge_full_design')
 
-    ### производитель и модель батареи
+    ### battery manufacturer and model
     with open(path+'manufacturer') as f:
         manufacturer = f.read().strip()
 
@@ -169,13 +169,13 @@ def mainCycle():
         model_name = f.read().strip()
 
     while True:
-        ### Статус батареи, заряжается\разряжается
+        ### Battery status, charging\discharging
         with open(path+'status') as f:
             status = f.read().strip()
 
-        ### 🔥 ИСПРАВЛЕНИЕ: задаем значения по умолчанию, чтобы избежать UnboundLocalError
-        color_num = 1  # стандартный цвет консоли
-        prefix = ' '   # неизвестный статус
+        ###  FIX: set default values to avoid UnboundLocalError
+        color_num = 1  # default console color
+        prefix = ' '   # unknown status
 
         if 'Discharging' in status:
             prefix = '-'
@@ -190,22 +190,22 @@ def mainCycle():
             color_num = 2
             myscreen.addstr(start_y, start_x_charg, charg_full)
         else:
-            # Обработка нестандартных статусов (Unknown, Not charging и т.д.)
-            myscreen.addstr(start_y, start_x_discharg, f'Статус: {status}')
+            # Handle non-standard statuses (Unknown, Not charging, etc.)
+            myscreen.addstr(start_y, start_x_discharg, f'Status: {status}')
 
-        ### 🔥 текущий заряд/розряд: читаем power_now или current_now (совместимость со старыми ядрами)
+        ###  current charge/discharge: read power_now or current_now (compatibility with older kernels)
         power_uw = read_power_or_current(path)
         myscreen.attron(curses.color_pair(color_num))
         myscreen.attron(curses.A_BOLD)
-        # Конвертируем мкВт -> мА для отображения (приблизительно, через среднее напряжение)
-        # Для точности в мА нужно знать напряжение, но для индикации достаточно округлить
+        # Convert uW -> mA for display (approximately, via average voltage)
+        # For accuracy in mA, voltage is needed, but rounding is sufficient for indication
         myscreen.addstr(start_y - 3, start_x_current_now - 6, prefix+str(round(power_uw / 1000))+' mA ')
         myscreen.attroff(curses.A_BOLD)
         myscreen.attroff(curses.color_pair(color_num))
         myscreen.addstr(start_y - 2, start_x_line - 2, line)
         myscreen.addstr(start_y - 1, start_x_empty + 1,'')
 
-        ### 🔥 РАСЧЁТ ПРОЦЕНТА С ДЕСЯТЫМИ (energy или charge)
+        ###  PERCENTAGE CALCULATION WITH DECIMALS (energy or charge)
         energy_now = read_energy_or_charge(path, 'energy_now', 'charge_now')
         energy_full = read_energy_or_charge(path, 'energy_full', 'charge_full')
         
@@ -214,32 +214,32 @@ def mainCycle():
         else:
             percent = 0.0
 
-        # Вывод процента БЕЗ цвета, как просили
+        # Output percentage WITHOUT color, as requested
         myscreen.addstr(start_y + 1, start_x_percent_charge - 5, percent_charge + f"{percent:.1f}" + ' % ')
 
-        ### 🔥 ДЕГРАДАЦИЯ
+        ###  DEGRADATION
         degradation = get_battery_degradation(energy_full, charge_full_design)
 
-        ### Тип батареи
+        ### Battery type
         myscreen.addstr(start_y + 2, start_x_technology - 8, type_bat+technology)
 
-        ### Заводская емкость батареи (mWh или mAh в зависимости от API ядра)
+        ### Factory battery capacity (mWh or mAh depending on kernel API)
         myscreen.addstr(start_y + 3, start_x_full_design - 15, full_bat + str(int(charge_full_design) // 1000) + ' ' + capacity_unit + ' ')
 
-        ### 🔥 Расчёт и вывод энергоёмкости батареи в Вт·ч ниже строки mWh/mAh
-        # Значения в sysfs хранятся в микроватт-часах (μWh). Делим на 1 000 000 для перевода в Вт·ч.
+        ###  Calculate and output battery energy capacity in Wh below the mWh/mAh line
+        # Values in sysfs are stored in microwatt-hours (uWh). Divide by 1,000,000 to convert to Wh.
         design_wh = charge_full_design / 1_000_000
         current_wh = energy_full / 1_000_000 if energy_full > 0 else 0.0
         
-        myscreen.addstr(start_y + 4, start_x_full_design - 15, f"Энергоёмкость (заводская): {design_wh:.2f} Вт·ч")
-        myscreen.addstr(start_y + 5, start_x_full_design - 15, f"Энергоёмкость (текущая):   {current_wh:.2f} Вт·ч")
+        myscreen.addstr(start_y + 4, start_x_full_design - 15, f"Energy capacity (factory): {design_wh:.2f} Wh")
+        myscreen.addstr(start_y + 5, start_x_full_design - 15, f"Energy capacity (current):   {current_wh:.2f} Wh")
 
-        ### Текущее напряжение (сдвинуто вниз)
+        ### Current voltage (shifted down)
         with open(path+'voltage_now') as f:
             voltage_now = int(f.read().strip())
         myscreen.addstr(start_y + 6, start_x_voltage - 8, volt_bat+str(round(voltage_now / 1000000, 1))+' V ')
 
-        ### производитель и модель батареи (сдвинуто вниз)
+        ### battery manufacturer and model (shifted down)
         myscreen.addstr(start_y + 7, start_x_manufacturer - 9, manufacturer_name+manufacturer)
         myscreen.addstr(start_y + 8, start_x_model - 6, model+model_name)
 
@@ -248,14 +248,14 @@ def mainCycle():
 
         myscreen.addstr(start_y + 9, start_x_capacity_level - 7, capacity_lev+capacity_level)
         
-        # 🔥 ДЕГРАДАЦИЯ С ЦВЕТОВОЙ ИНДИКАЦИЕЙ ТОЛЬКО ДЛЯ ЗНАЧЕНИЯ (сдвинуто вниз)
+        #  DEGRADATION WITH COLOR INDICATION FOR VALUE ONLY (shifted down)
         myscreen.addstr(start_y + 10, start_x_capacity_level - 8, degrade)
         if degradation is not None:
             deg_str = f"{degradation:.2f} %"
             if degradation >= 50.0:
-                myscreen.attron(curses.color_pair(3) | curses.A_BOLD) # Красный (критично >=50%)
+                myscreen.attron(curses.color_pair(3) | curses.A_BOLD) # Red (critical >=50%)
             else:
-                myscreen.attron(curses.color_pair(2))                 # Зелёный (норма <50%)
+                myscreen.attron(curses.color_pair(2))                 # Green (normal <50%)
             myscreen.addstr(start_y + 10, start_x_capacity_level - 8 + len(degrade), deg_str)
             myscreen.attroff(curses.color_pair(3) | curses.A_BOLD)
             myscreen.attroff(curses.color_pair(2))
@@ -267,16 +267,16 @@ def mainCycle():
 
 def exitFunc():
     try:
-        myscreen.addstr(start_y + 13, start_x_exit - 4, exit) ### Сдвинуто на +2 для освобождения места под Wh
-        if myscreen.getch() == 113: ### 113 это ord('q')
-            main_cycle_proc.terminate() ### мгновенно убиваем главный цикл
+        myscreen.addstr(start_y + 13, start_x_exit - 4, exit) ### Shifted by +2 to free up space for Wh
+        if myscreen.getch() == 113: ### 113 is ord('q')
+            main_cycle_proc.terminate() ### instantly kill the main cycle
     except KeyboardInterrupt:
         main_cycle_proc.terminate()
         myscreen.clear()
         curses.endwin()
 
 
-### Процессом сделано для того чтобы не было задержки выхода по q организованому в главном цикле, запускается отдельным процесом и прибивается функцией exitFunc()
+### Made as a process so there is no delay exiting on q organized in the main loop, runs as a separate process and is killed by exitFunc()
 main_cycle_proc = multiprocessing.Process(target=mainCycle)
 main_cycle_proc.start()
 
@@ -285,7 +285,7 @@ try:
 except KeyboardInterrupt:
     pass
 finally:
-    # 🔥 Чистый молчаливый выход: убиваем дочерний процесс и корректно закрываем curses
+    #  Clean silent exit: kill child process and correctly close curses
     main_cycle_proc.terminate()
     main_cycle_proc.join(timeout=1)
     try:
